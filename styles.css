@@ -368,3 +368,23 @@ header h1 {
         width: 80px;
     }
 }
+
+/* Added for Athlete Avatar */
+.athlete-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 15px;
+    border: 2px solid white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.runner-info {
+    display: flex;
+    align-items: center;
+}
+
+.dashboard-table td {
+    vertical-align: middle;
+}

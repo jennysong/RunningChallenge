@@ -1,42 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Running Challenge Dashboard</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="container">
         <header>
             <h1>🏃 Running Challenge Dashboard</h1>
             <div class="header-controls">
-                <button id="adminToggle" class="btn btn-primary">Admin Mode</button>
+                <!-- Admin Toggle Removed -->
                 <span id="weekDisplay" class="week-display"></span>
             </div>
         </header>
-
-        <!-- Admin Panel -->
-        <div id="adminPanel" class="admin-panel hidden">
-            <div class="admin-section">
-                <h2>Manage Runners</h2>
-                <div class="input-group">
-                    <input type="text" id="runnerName" placeholder="Enter runner name" />
-                    <button id="addRunner" class="btn btn-success">Add Runner</button>
-                </div>
-                <div id="runnersList" class="runners-list"></div>
-            </div>
-
-            <div class="admin-section">
-                <h2>Weekly Goals & Results</h2>
-                <div class="week-controls">
-                    <label for="weekSelect">Select Week:</label>
-                    <select id="weekSelect"></select>
-                    <button id="addWeek" class="btn btn-primary">Add New Week</button>
-                </div>
-                <div id="weeklyData" class="weekly-data"></div>
-            </div>
-        </div>
 
         <!-- Dashboard View -->
         <div id="dashboardView" class="dashboard-view">
@@ -51,4 +31,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

@@ -1,442 +1,323 @@
-// Data Structure
-let runners = [];
-let weeks = [];
-let currentWeek = null;
-let isAdminMode = false;
+
+// Configuration
+const AVAILABLE_WEEKS = ['week1.json', 'week2.json', 'week3.json', 'week4.json', 'week5.json'];
+
+// State
+let weeksData = [];
+let goalsData = {}; // Map of athlete_id -> [goal_week1, goal_week2, ...]
+let runnerProfiles = {}; // Map of athlete_id -> { name, picture }
+let currentWeekId = null;
 
 // Initialize app
-document.addEventListener('DOMContentLoaded', function() {
-    loadData();
+document.addEventListener('DOMContentLoaded', async function () {
+    await Promise.all([loadWeeksData(), loadGoalsData()]);
     initializeEventListeners();
     renderDashboard();
 });
 
-// Load data from localStorage
-function loadData() {
-    const savedRunners = localStorage.getItem('runners');
-    const savedWeeks = localStorage.getItem('weeks');
-    
-    if (savedRunners) {
-        runners = JSON.parse(savedRunners);
-    }
-    
-    if (savedWeeks) {
-        weeks = JSON.parse(savedWeeks);
-        if (weeks.length > 0) {
-            currentWeek = weeks[weeks.length - 1].id;
+// Load all week data files
+// Load all week data files
+async function loadWeeksData() {
+    weeksData = [];
+
+    for (const filename of AVAILABLE_WEEKS) {
+        try {
+            const response = await fetch("strava/" + filename);
+            if (!response.ok) {
+                console.warn(`Could not load ${filename}`);
+                continue;
+            }
+
+            const json = await response.json();
+            const weekId = filename.replace('.json', '');
+            // Format name: "week4" -> "Week 4"
+            const weekName = weekId.replace(/(\D+)(\d+)/, '$1 $2').replace(/^\w/, c => c.toUpperCase());
+            // Extract week number for goal lookup (1-based index)
+            const weekNum = parseInt(weekId.match(/\d+/)[0]);
+
+            const data = json.data || [];
+
+            // Collect runner profiles
+            data.forEach(runner => {
+                if (!runnerProfiles[runner.athlete_id]) {
+                    runnerProfiles[runner.athlete_id] = {
+                        firstname: runner.athlete_firstname,
+                        lastname: runner.athlete_lastname,
+                        picture: runner.athlete_picture_url
+                    };
+                } else {
+                    // Update picture if it was missing (or just update to latest)
+                    if (runner.athlete_picture_url) {
+                        runnerProfiles[runner.athlete_id].picture = runner.athlete_picture_url;
+                    }
+                }
+            });
+
+            weeksData.push({
+                id: weekId,
+                name: weekName,
+                weekNum: weekNum,
+                data: data
+            });
+        } catch (error) {
+            console.error(`Error loading ${filename}:`, error);
         }
+    }
+
+    // Set default to latest week
+    if (weeksData.length > 0) {
+        currentWeekId = weeksData[weeksData.length - 1].id;
     }
 }
 
-// Save data to localStorage
-function saveData() {
-    localStorage.setItem('runners', JSON.stringify(runners));
-    localStorage.setItem('weeks', JSON.stringify(weeks));
+// Load goals.csv
+// Load goals.csv
+async function loadGoalsData() {
+    try {
+        const response = await fetch('goals.csv');
+        if (!response.ok) throw new Error('Failed to load goals.csv');
+
+        const text = await response.text();
+        const rows = text.split('\n').map(row => row.split(','));
+
+        // Skip header row
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row.length < 4) continue;
+
+            const athleteId = row[2]; // 3rd column is athlete_id
+            if (!athleteId) continue;
+
+            const name = row[1]; // Strava Name from CSV
+
+            // If we haven't seen this runner in the JSON files, add them from CSV
+            if (!runnerProfiles[athleteId]) {
+                const nameParts = name.trim().split(' ');
+                runnerProfiles[athleteId] = {
+                    firstname: nameParts[0] || name,
+                    lastname: nameParts.slice(1).join(' ') || '',
+                    picture: null // No picture from CSV
+                };
+            }
+
+            // Goals start from 4th column (index 3)
+            // Store as array where index 0 = Week 1, index 1 = Week 2, etc.
+            const goals = row.slice(3).map(val => {
+                const num = parseFloat(val);
+                return isNaN(num) ? 0 : num;
+            });
+
+            goalsData[athleteId] = goals;
+        }
+    } catch (error) {
+        console.error('Error loading goals:', error);
+    }
 }
 
 // Initialize event listeners
 function initializeEventListeners() {
-    document.getElementById('adminToggle').addEventListener('click', toggleAdminMode);
-    document.getElementById('addRunner').addEventListener('click', addRunner);
-    document.getElementById('addWeek').addEventListener('click', addWeek);
-    document.getElementById('weekSelect').addEventListener('change', onWeekSelectChange);
-    document.getElementById('dashboardWeekSelect').addEventListener('change', onDashboardWeekChange);
-    
-    // Enter key support for runner name input
-    document.getElementById('runnerName').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            addRunner();
-        }
-    });
-}
-
-// Toggle between admin and dashboard view
-function toggleAdminMode() {
-    isAdminMode = !isAdminMode;
-    const adminPanel = document.getElementById('adminPanel');
-    const dashboardView = document.getElementById('dashboardView');
-    const toggleBtn = document.getElementById('adminToggle');
-    
-    if (isAdminMode) {
-        adminPanel.classList.remove('hidden');
-        dashboardView.classList.add('hidden');
-        toggleBtn.textContent = 'Dashboard View';
-        toggleBtn.classList.remove('btn-primary');
-        toggleBtn.classList.add('btn-secondary');
-        renderAdminPanel();
-    } else {
-        adminPanel.classList.add('hidden');
-        dashboardView.classList.remove('hidden');
-        toggleBtn.textContent = 'Admin Mode';
-        toggleBtn.classList.remove('btn-secondary');
-        toggleBtn.classList.add('btn-primary');
-        renderDashboard();
+    const weekSelect = document.getElementById('dashboardWeekSelect');
+    if (weekSelect) {
+        weekSelect.addEventListener('change', (e) => {
+            currentWeekId = e.target.value;
+            renderDashboard();
+        });
     }
 }
 
-// Add a new runner
-function addRunner() {
-    const nameInput = document.getElementById('runnerName');
-    const name = nameInput.value.trim();
-    
-    if (!name) {
-        alert('Please enter a runner name');
-        return;
-    }
-    
-    // Check for duplicate names
-    if (runners.some(r => r.name.toLowerCase() === name.toLowerCase())) {
-        alert('A runner with this name already exists');
-        return;
-    }
-    
-    const runner = {
-        id: Date.now().toString(),
-        name: name
-    };
-    
-    runners.push(runner);
-    saveData();
-    nameInput.value = '';
-    renderRunnersList();
-    renderWeeklyData();
-}
-
-// Remove a runner
-function removeRunner(runnerId) {
-    if (!confirm('Are you sure you want to remove this runner?')) {
-        return;
-    }
-    
-    runners = runners.filter(r => r.id !== runnerId);
-    
-    // Remove runner from all weeks
-    weeks.forEach(week => {
-        delete week.data[runnerId];
-    });
-    
-    saveData();
-    renderRunnersList();
-    renderWeeklyData();
-}
-
-// Add a new week
-function addWeek() {
-    const weekName = prompt('Enter week name (e.g., Week 1, Jan 1-7):', `Week ${weeks.length + 1}`);
-    
-    if (!weekName) {
-        return;
-    }
-    
-    const week = {
-        id: Date.now().toString(),
-        name: weekName,
-        data: {}
-    };
-    
-    // Initialize data for all runners
-    runners.forEach(runner => {
-        week.data[runner.id] = {
-            goal: 0,
-            achieved: 0
-        };
-    });
-    
-    weeks.push(week);
-    currentWeek = week.id;
-    saveData();
-    renderWeekSelects();
-    renderWeeklyData();
-}
-
-// Render runners list in admin panel
-function renderRunnersList() {
-    const container = document.getElementById('runnersList');
-    
-    if (runners.length === 0) {
-        container.innerHTML = '<p style="color: #999;">No runners added yet. Add your first runner above.</p>';
-        return;
-    }
-    
-    container.innerHTML = runners.map(runner => `
-        <div class="runner-item">
-            <span>${runner.name}</span>
-            <button class="btn btn-danger" onclick="removeRunner('${runner.id}')">Remove</button>
-        </div>
-    `).join('');
-}
-
-// Render week select dropdowns
-function renderWeekSelects() {
-    const adminSelect = document.getElementById('weekSelect');
-    const dashboardSelect = document.getElementById('dashboardWeekSelect');
-    
-    const options = weeks.map(week => 
-        `<option value="${week.id}" ${week.id === currentWeek ? 'selected' : ''}>${week.name}</option>`
-    ).join('');
-    
-    adminSelect.innerHTML = options || '<option>No weeks available</option>';
-    dashboardSelect.innerHTML = options || '<option>No weeks available</option>';
-}
-
-// Handle week selection change in admin
-function onWeekSelectChange(e) {
-    currentWeek = e.target.value;
-    renderWeeklyData();
-}
-
-// Handle week selection change in dashboard
-function onDashboardWeekChange(e) {
-    currentWeek = e.target.value;
-    renderDashboard();
-}
-
-// Render weekly data table in admin panel
-function renderWeeklyData() {
-    const container = document.getElementById('weeklyData');
-    
-    if (weeks.length === 0) {
-        container.innerHTML = '<p style="color: #999;">No weeks added yet. Click "Add New Week" to create one.</p>';
-        return;
-    }
-    
-    if (runners.length === 0) {
-        container.innerHTML = '<p style="color: #999;">No runners added yet. Add runners first to enter weekly data.</p>';
-        return;
-    }
-    
-    const week = weeks.find(w => w.id === currentWeek);
-    if (!week) {
-        return;
-    }
-    
-    // Ensure all current runners have data entries
-    runners.forEach(runner => {
-        if (!week.data[runner.id]) {
-            week.data[runner.id] = { goal: 0, achieved: 0 };
-        }
-    });
-    
-    container.innerHTML = `
-        <table class="weekly-table">
-            <thead>
-                <tr>
-                    <th>Runner</th>
-                    <th>Goal (km)</th>
-                    <th>Achieved (km)</th>
-                    <th>Missed (km)</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${runners.map(runner => {
-                    const data = week.data[runner.id] || { goal: 0, achieved: 0 };
-                    const missed = Math.max(0, data.goal - data.achieved);
-                    const status = data.achieved >= data.goal ? '✓ Goal Met' : '✗ Goal Missed';
-                    const statusClass = data.achieved >= data.goal ? 'achieved' : 'missed';
-                    
-                    return `
-                        <tr>
-                            <td><strong>${runner.name}</strong></td>
-                            <td>
-                                <input type="number" 
-                                       min="0" 
-                                       step="0.1" 
-                                       value="${data.goal}" 
-                                       onchange="updateGoal('${runner.id}', this.value)" />
-                            </td>
-                            <td>
-                                <input type="number" 
-                                       min="0" 
-                                       step="0.1" 
-                                       value="${data.achieved}" 
-                                       onchange="updateAchieved('${runner.id}', this.value)" />
-                            </td>
-                            <td class="missed">${missed.toFixed(1)}</td>
-                            <td class="${statusClass}">${status}</td>
-                        </tr>
-                    `;
-                }).join('')}
-            </tbody>
-        </table>
-    `;
-}
-
-// Update goal for a runner
-function updateGoal(runnerId, value) {
-    const week = weeks.find(w => w.id === currentWeek);
-    if (week) {
-        if (!week.data[runnerId]) {
-            week.data[runnerId] = { goal: 0, achieved: 0 };
-        }
-        week.data[runnerId].goal = parseFloat(value) || 0;
-        saveData();
-        renderWeeklyData();
-    }
-}
-
-// Update achieved distance for a runner
-function updateAchieved(runnerId, value) {
-    const week = weeks.find(w => w.id === currentWeek);
-    if (week) {
-        if (!week.data[runnerId]) {
-            week.data[runnerId] = { goal: 0, achieved: 0 };
-        }
-        week.data[runnerId].achieved = parseFloat(value) || 0;
-        saveData();
-        renderWeeklyData();
-    }
-}
-
-// Render dashboard view
+// Main render function
 function renderDashboard() {
-    updateWeekDisplay();
-    renderWeekSelects();
-    renderDashboardTable();
+    renderWeekSelect();
+    renderWeekDisplay();
+    renderTable();
     renderSummary();
 }
 
-// Update week display in header
-function updateWeekDisplay() {
+// Render the week selector dropdown
+function renderWeekSelect() {
+    const select = document.getElementById('dashboardWeekSelect');
+    if (!select) return;
+
+    select.innerHTML = weeksData.map(week =>
+        `<option value="${week.id}" ${week.id === currentWeekId ? 'selected' : ''}>
+            ${week.name}
+        </option>`
+    ).join('');
+}
+
+// Update the header display text
+function renderWeekDisplay() {
     const display = document.getElementById('weekDisplay');
-    if (weeks.length > 0 && currentWeek) {
-        const week = weeks.find(w => w.id === currentWeek);
-        display.textContent = week ? week.name : '';
+    if (!display) return;
+
+    const currentWeek = weeksData.find(w => w.id === currentWeekId);
+    if (currentWeek) {
+        display.textContent = currentWeek.name;
     } else {
-        display.textContent = 'No data available';
+        display.textContent = '';
     }
 }
 
-// Render dashboard table
-function renderDashboardTable() {
+// Render the main data table
+// Render the main data table
+function renderTable() {
     const container = document.getElementById('dashboardTable');
-    
-    if (weeks.length === 0 || runners.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <h3>No Data Available</h3>
-                <p>Switch to Admin Mode to add runners and weekly data.</p>
-            </div>
-        `;
+    if (!container) return;
+
+    const currentWeek = weeksData.find(w => w.id === currentWeekId);
+
+    if (!currentWeek) {
+        container.innerHTML = '<div class="empty-state">No data available for this week.</div>';
         return;
     }
-    
-    const week = weeks.find(w => w.id === currentWeek);
-    if (!week) {
-        return;
+
+    // Start with the actual runners from the JSON
+    let allRunners = [...currentWeek.data];
+
+    // Add missing runners who have a goal for this week
+    const weekIndex = currentWeek.weekNum - 1;
+    const existingIds = new Set(allRunners.map(r => r.athlete_id.toString())); // Ensure string comparison
+
+    for (const [athleteId, goals] of Object.entries(goalsData)) {
+        // Check if they have a goal > 0 for this week
+        const goalKm = goals[weekIndex] || 0;
+
+        if (goalKm > 0 && !existingIds.has(athleteId.toString())) {
+            // Get profile info
+            const profile = runnerProfiles[athleteId] || { firstname: 'Unknown', lastname: '', picture: null };
+
+            allRunners.push({
+                rank: 999, // Temporary rank, will resort
+                athlete_id: athleteId,
+                athlete_firstname: profile.firstname,
+                athlete_lastname: profile.lastname,
+                athlete_picture_url: profile.picture,
+                distance: 0
+            });
+        }
     }
-    
-    // Calculate rankings
-    const runnerStats = runners.map(runner => {
-        const data = week.data[runner.id] || { goal: 0, achieved: 0 };
-        const missed = Math.max(0, data.goal - data.achieved);
-        const percentage = data.goal > 0 ? (data.achieved / data.goal * 100) : 0;
-        
-        return {
-            ...runner,
-            goal: data.goal,
-            achieved: data.achieved,
-            missed: missed,
-            percentage: percentage
-        };
-    }).sort((a, b) => b.achieved - a.achieved);
-    
+
+    // Sort by distance descending
+    allRunners.sort((a, b) => b.distance - a.distance);
+
+    // Re-assign ranks
+    allRunners.forEach((runner, index) => {
+        runner.rank = index + 1;
+    });
+
     container.innerHTML = `
         <table>
             <thead>
                 <tr>
                     <th>Rank</th>
-                    <th>Runner</th>
+                    <th>Athlete</th>
                     <th>Goal (km)</th>
-                    <th>Achieved (km)</th>
+                    <th>Distance (km)</th>
                     <th>Missed (km)</th>
-                    <th>% Complete</th>
-                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
-                ${runnerStats.map((runner, index) => {
-                    const status = runner.achieved >= runner.goal ? '✓ Goal Met' : '✗ Missed';
-                    const statusClass = runner.achieved >= runner.goal ? 'status-achieved' : 'status-missed';
-                    
-                    return `
+                ${allRunners.map(runner => {
+        const distanceKm = (runner.distance / 1000);
+        const fullName = `${runner.athlete_firstname} ${runner.athlete_lastname}`;
+        const avatarUrl = runner.athlete_picture_url || 'https://via.placeholder.com/40';
+
+        // Get goal for this week
+        const athleteGoals = goalsData[runner.athlete_id] || [];
+        const goalKm = athleteGoals[weekIndex] || 0;
+
+        const missedKm = Math.max(0, goalKm - distanceKm);
+        const isGoalMet = distanceKm >= goalKm;
+
+        // Rank styling
+        let rankClass = 'rank';
+        if (runner.rank === 1) rankClass += ' rank-1';
+        if (runner.rank === 2) rankClass += ' rank-2';
+        if (runner.rank === 3) rankClass += ' rank-3';
+
+        // Status styling
+        const missedClass = isGoalMet ? 'status-achieved' : 'status-missed';
+        const missedText = isGoalMet ? '✓' : missedKm.toFixed(2);
+
+        return `
                         <tr>
-                            <td class="rank">#${index + 1}</td>
-                            <td><strong>${runner.name}</strong></td>
-                            <td>${runner.goal.toFixed(1)}</td>
-                            <td>${runner.achieved.toFixed(1)}</td>
-                            <td>${runner.missed.toFixed(1)}</td>
-                            <td>${runner.percentage.toFixed(0)}%</td>
-                            <td class="${statusClass}">${status}</td>
+                            <td class="${rankClass}">#${runner.rank}</td>
+                            <td>
+                                <div class="runner-info">
+                                    <img src="${avatarUrl}" alt="${fullName}" class="athlete-avatar" onerror="this.src='https://via.placeholder.com/40'">
+                                    <span><strong>${fullName}</strong></span>
+                                </div>
+                            </td>
+                            <td>${goalKm > 0 ? goalKm.toFixed(1) : '-'}</td>
+                            <td><strong>${distanceKm.toFixed(2)}</strong></td>
+                            <td class="${missedClass}">${missedText}</td>
                         </tr>
                     `;
-                }).join('')}
+    }).join('')}
             </tbody>
         </table>
     `;
 }
 
-// Render summary statistics
+// Render simple summary stats
+// Render simple summary stats
 function renderSummary() {
     const container = document.getElementById('summary');
-    
-    if (weeks.length === 0 || runners.length === 0) {
+    if (!container) return;
+
+    const currentWeek = weeksData.find(w => w.id === currentWeekId);
+    if (!currentWeek) {
         container.innerHTML = '';
         return;
     }
-    
-    const week = weeks.find(w => w.id === currentWeek);
-    if (!week) {
-        return;
+
+    // We need to calculate stats based on the FULL list (including 0km runners)
+    // Re-generating the list logic here is duplicative but safest without refactoring renderTable into a data provider
+    let allRunners = [...currentWeek.data];
+    const weekIndex = currentWeek.weekNum - 1;
+    const existingIds = new Set(allRunners.map(r => r.athlete_id.toString()));
+
+    for (const [athleteId, goals] of Object.entries(goalsData)) {
+        const goalKm = goals[weekIndex] || 0;
+        if (goalKm > 0 && !existingIds.has(athleteId.toString())) {
+            allRunners.push({ distance: 0, athlete_id: athleteId });
+        }
     }
-    
+
+    const totalDistance = allRunners.reduce((sum, r) => sum + r.distance, 0);
+    const totalRunners = allRunners.length;
+
+    // Calculate total goal
     let totalGoal = 0;
-    let totalAchieved = 0;
     let goalsMet = 0;
-    
-    runners.forEach(runner => {
-        const data = week.data[runner.id] || { goal: 0, achieved: 0 };
-        totalGoal += data.goal;
-        totalAchieved += data.achieved;
-        if (data.achieved >= data.goal) {
+
+    allRunners.forEach(runner => {
+        const athleteGoals = goalsData[runner.athlete_id] || [];
+        const goalKm = athleteGoals[weekIndex] || 0;
+        const distanceKm = runner.distance / 1000;
+
+        totalGoal += goalKm;
+        if (distanceKm >= goalKm && goalKm > 0) {
             goalsMet++;
         }
     });
-    
-    const totalMissed = Math.max(0, totalGoal - totalAchieved);
-    const avgPercentage = totalGoal > 0 ? (totalAchieved / totalGoal * 100) : 0;
-    
+
     container.innerHTML = `
         <div class="summary-card">
             <h3>Total Runners</h3>
-            <div class="value">${runners.length}</div>
+            <div class="value">${totalRunners}</div>
+        </div>
+        <div class="summary-card">
+            <h3>Total Distance</h3>
+            <div class="value">${(totalDistance / 1000).toFixed(1)} km</div>
         </div>
         <div class="summary-card">
             <h3>Total Goal</h3>
             <div class="value">${totalGoal.toFixed(1)} km</div>
         </div>
         <div class="summary-card">
-            <h3>Total Achieved</h3>
-            <div class="value">${totalAchieved.toFixed(1)} km</div>
-        </div>
-        <div class="summary-card">
-            <h3>Total Missed</h3>
-            <div class="value">${totalMissed.toFixed(1)} km</div>
-        </div>
-        <div class="summary-card">
             <h3>Goals Met</h3>
-            <div class="value">${goalsMet} / ${runners.length}</div>
-        </div>
-        <div class="summary-card">
-            <h3>Overall Progress</h3>
-            <div class="value">${avgPercentage.toFixed(0)}%</div>
+            <div class="value">${goalsMet} / ${totalRunners}</div>
         </div>
     `;
-}
-
-// Render admin panel
-function renderAdminPanel() {
-    renderRunnersList();
-    renderWeekSelects();
-    renderWeeklyData();
 }
