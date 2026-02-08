@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Running Challenge Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🏃 Running Challenge Dashboard</h1>
+            <div class="header-controls">
+                <!-- Admin Toggle Removed -->
+                <span id="weekDisplay" class="week-display"></span>
+            </div>
+        </header>
+
+        <!-- Dashboard View -->
+        <div id="dashboardView" class="dashboard-view">
+            <div class="controls">
+                <label for="dashboardWeekSelect">Select Week:</label>
+                <select id="dashboardWeekSelect"></select>
+            </div>
+            <div id="dashboardTable" class="dashboard-table"></div>
+            <div id="summary" class="summary"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
