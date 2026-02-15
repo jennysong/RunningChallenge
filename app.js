@@ -1,6 +1,6 @@
 
 // Configuration
-const AVAILABLE_WEEKS = ['week1.json', 'week2.json', 'week3.json', 'week4.json', 'week5.json'];
+const AVAILABLE_WEEKS = ['week1.json', 'week2.json', 'week3.json', 'week4.json', 'week5.json', 'week6.json'];
 
 // State
 let weeksData = [];
