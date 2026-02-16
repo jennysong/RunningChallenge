@@ -2,6 +2,29 @@
 // Configuration
 const AVAILABLE_WEEKS = ['week1.json', 'week2.json', 'week3.json', 'week4.json', 'week5.json', 'week6.json'];
 
+// Function to get date range for a week (Week 1 starts Jan 5, 2026)
+function getWeekDateRange(weekNum) {
+    // Week 1 starts on Monday, Jan 5, 2026
+    const baseDate = new Date(2026, 0, 5); // January 5, 2026 (months are 0-indexed)
+    
+    // Calculate start date (Monday of the given week)
+    const startDate = new Date(baseDate);
+    startDate.setDate(baseDate.getDate() + (weekNum - 1) * 7);
+    
+    // Calculate end date (Sunday of the given week)
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    
+    // Format dates as "Jan 5 - Jan 11"
+    const formatDate = (date) => {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${months[date.getMonth()]} ${date.getDate()}`;
+    };
+    
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+}
+
 // State
 let weeksData = [];
 let goalsData = {}; // Map of athlete_id -> [goal_week1, goal_week2, ...]
@@ -30,10 +53,12 @@ async function loadWeeksData() {
 
             const json = await response.json();
             const weekId = filename.replace('.json', '');
-            // Format name: "week4" -> "Week 4"
-            const weekName = weekId.replace(/(\D+)(\d+)/, '$1 $2').replace(/^\w/, c => c.toUpperCase());
             // Extract week number for goal lookup (1-based index)
             const weekNum = parseInt(weekId.match(/\d+/)[0]);
+            // Get date range for this week
+            const weekDateRange = getWeekDateRange(weekNum);
+            // Format name: "week4" -> "Week 4"
+            const weekName = weekId.replace(/(\D+)(\d+)/, '$1 $2').replace(/^\w/, c => c.toUpperCase());
 
             const data = json.data || [];
 
@@ -56,6 +81,7 @@ async function loadWeeksData() {
             weeksData.push({
                 id: weekId,
                 name: weekName,
+                dateRange: weekDateRange,
                 weekNum: weekNum,
                 data: data
             });
@@ -123,10 +149,51 @@ function initializeEventListeners() {
             renderDashboard();
         });
     }
+
+    const allTimeSummaryLink = document.getElementById('allTimeSummaryLink');
+    if (allTimeSummaryLink) {
+        allTimeSummaryLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            renderAllTimeSummary();
+        });
+    }
 }
 
 // Main render function
 function renderDashboard() {
+    const controlsContainer = document.querySelector('.controls');
+    
+    // Restore controls to weekly view
+    if (controlsContainer) {
+        controlsContainer.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label for="dashboardWeekSelect">Select Week:</label>
+                <select id="dashboardWeekSelect"></select>
+            </div>
+            <a href="#" id="allTimeSummaryLink" class="btn btn-secondary" style="margin-right: 15px;" onmouseover="this.style.transform='none'; this.style.boxShadow='none';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">All-time Summary</a>
+        `;
+        controlsContainer.style.display = 'flex';
+        controlsContainer.style.justifyContent = 'space-between';
+        controlsContainer.style.alignItems = 'center';
+        
+        // Re-attach event listeners
+        const weekSelect = document.getElementById('dashboardWeekSelect');
+        if (weekSelect) {
+            weekSelect.addEventListener('change', (e) => {
+                currentWeekId = e.target.value;
+                renderDashboard();
+            });
+        }
+        
+        const allTimeSummaryLink = document.getElementById('allTimeSummaryLink');
+        if (allTimeSummaryLink) {
+            allTimeSummaryLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                renderAllTimeSummary();
+            });
+        }
+    }
+    
     renderWeekSelect();
     renderWeekDisplay();
     renderTable();
@@ -152,7 +219,7 @@ function renderWeekDisplay() {
 
     const currentWeek = weeksData.find(w => w.id === currentWeekId);
     if (currentWeek) {
-        display.textContent = currentWeek.name;
+        display.textContent = currentWeek.dateRange;
     } else {
         display.textContent = '';
     }
@@ -320,4 +387,152 @@ function renderSummary() {
             <div class="value">${goalsMet} / ${totalRunners}</div>
         </div>
     `;
+}
+
+// Render all-time summary
+function renderAllTimeSummary() {
+    const container = document.getElementById('dashboardTable');
+    const summaryContainer = document.getElementById('summary');
+    const controlsContainer = document.querySelector('.controls');
+    if (!container) return;
+
+    // Update controls to show All-Time Summary view
+    if (controlsContainer) {
+        controlsContainer.innerHTML = `
+            <span style="font-weight: 600; color: #764ba2; font-size: 1.8em;">All-Time Summary</span>
+            <button onclick="renderDashboard()" class="btn btn-secondary" style="margin-right: 15px;" onmouseover="this.style.transform='none'; this.style.boxShadow='none';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">Back to Weekly View</button>
+        `;
+        controlsContainer.style.display = 'flex';
+        controlsContainer.style.justifyContent = 'space-between';
+        controlsContainer.style.alignItems = 'center';
+    }
+
+    // Hide the date in the header
+    const weekDisplay = document.getElementById('weekDisplay');
+    if (weekDisplay) {
+        weekDisplay.textContent = '';
+    }
+
+    // Calculate totals for each athlete across all weeks
+    const athleteTotals = {};
+
+    // Initialize with all athletes who have goals
+    for (const [athleteId, goals] of Object.entries(goalsData)) {
+        athleteTotals[athleteId] = {
+            athlete_id: athleteId,
+            totalDistance: 0,
+            totalMissed: 0,
+            totalGoal: 0,
+            firstname: runnerProfiles[athleteId]?.firstname || 'Unknown',
+            lastname: runnerProfiles[athleteId]?.lastname || '',
+            picture: runnerProfiles[athleteId]?.picture
+        };
+        
+        // Sum up all goals for this athlete
+        athleteTotals[athleteId].totalGoal = goals.reduce((sum, goal) => sum + (goal || 0), 0);
+    }
+
+    // Add distance data from all weeks and calculate weekly missed km
+    weeksData.forEach((week, weekIndex) => {
+        week.data.forEach(runner => {
+            if (!athleteTotals[runner.athlete_id]) {
+                athleteTotals[runner.athlete_id] = {
+                    athlete_id: runner.athlete_id,
+                    totalDistance: 0,
+                    totalMissed: 0,
+                    totalGoal: 0,
+                    firstname: runner.athlete_firstname,
+                    lastname: runner.athlete_lastname,
+                    picture: runner.athlete_picture_url
+                };
+            }
+            
+            athleteTotals[runner.athlete_id].totalDistance += runner.distance;
+            
+            // Calculate missed km for this specific week
+            const athleteGoals = goalsData[runner.athlete_id] || [];
+            const weekGoal = athleteGoals[weekIndex] || 0;
+            const weekDistanceKm = runner.distance / 1000;
+            const weekMissed = Math.max(0, weekGoal - weekDistanceKm);
+            
+            athleteTotals[runner.athlete_id].totalMissed += weekMissed;
+        });
+    });
+
+    // Handle athletes who have goals but didn't run in some weeks
+    for (const athleteId in athleteTotals) {
+        const athlete = athleteTotals[athleteId];
+        const athleteGoals = goalsData[athleteId] || [];
+        
+        // Check each week to see if they had a goal but no recorded distance
+        weeksData.forEach((week, weekIndex) => {
+            const weekGoal = athleteGoals[weekIndex] || 0;
+            if (weekGoal > 0) {
+                // Check if this athlete ran in this week
+                const runnerInWeek = week.data.find(r => r.athlete_id == athleteId);
+                if (!runnerInWeek) {
+                    // They had a goal but didn't run - add the full goal as missed
+                    athlete.totalMissed += weekGoal;
+                }
+            }
+        });
+    }
+
+    // Convert to array and sort by total distance
+    const sortedAthletes = Object.values(athleteTotals)
+        .sort((a, b) => b.totalDistance - a.totalDistance);
+
+    // Add ranks
+    sortedAthletes.forEach((athlete, index) => {
+        athlete.rank = index + 1;
+    });
+
+    container.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Athlete</th>
+                    <th>Total Distance (km)</th>
+                    <th>Total Missed (km)</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${sortedAthletes.map(athlete => {
+        const distanceKm = athlete.totalDistance / 1000;
+        const fullName = `${athlete.firstname} ${athlete.lastname}`;
+        const avatarUrl = athlete.picture || 'https://via.placeholder.com/40';
+        
+        // Rank styling
+        let rankClass = 'rank';
+        if (athlete.rank === 1) rankClass += ' rank-1';
+        if (athlete.rank === 2) rankClass += ' rank-2';
+        if (athlete.rank === 3) rankClass += ' rank-3';
+        
+        // Status styling - for Total Missed column, show actual missed amount or 0.00
+        const missedClass = athlete.totalMissed === 0 ? 'status-achieved' : 'status-missed';
+        const missedText = athlete.totalMissed.toFixed(2);
+        
+        return `
+                        <tr>
+                            <td class="${rankClass}">#${athlete.rank}</td>
+                            <td>
+                                <div class="runner-info">
+                                    <img src="${avatarUrl}" alt="${fullName}" class="athlete-avatar" onerror="this.src='https://via.placeholder.com/40'">
+                                    <span><strong>${fullName}</strong></span>
+                                </div>
+                            </td>
+                            <td><strong>${distanceKm.toFixed(2)}</strong></td>
+                            <td class="${missedClass}">${missedText}</td>
+                        </tr>
+                    `;
+    }).join('')}
+            </tbody>
+        </table>
+    `;
+    
+    // Clear summary section for all-time view
+    if (summaryContainer) {
+        summaryContainer.innerHTML = '';
+    }
 }
