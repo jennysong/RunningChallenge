@@ -1,6 +1,6 @@
 
 // Configuration
-const AVAILABLE_WEEKS = ['week1.json', 'week2.json', 'week3.json', 'week4.json', 'week5.json', 'week6.json'];
+const AVAILABLE_WEEKS = ['week1.json', 'week2.json', 'week3.json', 'week4.json', 'week5.json', 'week6.json', 'week7.json'];
 
 // Function to get date range for a week (Week 1 starts Jan 5, 2026)
 function getWeekDateRange(weekNum) {
