@@ -1,21 +1,6 @@
 {
     "data": [
         {
-            "rank": 1,
-            "athlete_id": 205253945,
-            "velocity": 2.386155966916108,
-            "elev_gain": 125.80000000000001,
-            "num_activities": 7,
-            "moving_time": 15234,
-            "distance": 36350.69999999999,
-            "best_activities_distance": 10443.6,
-            "best_activities_distance_activity_id": 17810070651,
-            "athlete_firstname": "Jihee",
-            "athlete_lastname": "Hong",
-            "athlete_picture_url": "https://graph.facebook.com/10164197378926066/picture?height=256\u0026width=256",
-            "athlete_member_type": "premium"
-        },
-        {
             "rank": 2,
             "athlete_id": 153427954,
             "velocity": 2.5150989345509895,
