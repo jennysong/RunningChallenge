@@ -107,6 +107,21 @@
         },
         {
             "rank": 8,
+            "athlete_id": 24643887,
+            "velocity": 2.2961692650334076,
+            "elev_gain": 25.0,
+            "num_activities": 1,
+            "moving_time": 4490,
+            "distance": 10309.8,
+            "best_activities_distance": 10309.8,
+            "best_activities_distance_activity_id": 17891782343,
+            "athlete_firstname": "Shawn",
+            "athlete_lastname": "Jung",
+            "athlete_picture_url": "https://graph.facebook.com/1418530818201827/picture?height=256\u0026width=256",
+            "athlete_member_type": "premium"
+        },
+        {
+            "rank": 9,
             "athlete_id": 8802493,
             "velocity": 2.6811601776848706,
             "elev_gain": 81.4,
@@ -121,7 +136,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 9,
+            "rank": 10,
             "athlete_id": 187399139,
             "velocity": 2.495858708891596,
             "elev_gain": 13.4,
@@ -136,7 +151,7 @@
             "athlete_member_type": "premium"
         },
         {
-            "rank": 11,
+            "rank": 12,
             "athlete_id": 102533764,
             "velocity": 2.812403373155306,
             "elev_gain": 72.6,
@@ -151,7 +166,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 12,
+            "rank": 13,
             "athlete_id": 86396988,
             "velocity": 2.9166666666666665,
             "elev_gain": 0.0,
@@ -166,7 +181,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 13,
+            "rank": 14,
             "athlete_id": 189370896,
             "velocity": 2.654073448712537,
             "elev_gain": 38.599999999999994,
@@ -181,7 +196,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 14,
+            "rank": 15,
             "athlete_id": 108656669,
             "velocity": 2.2992369838420106,
             "elev_gain": 38.2,
@@ -196,7 +211,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 15,
+            "rank": 16,
             "athlete_id": 163206264,
             "velocity": 2.307123411978221,
             "elev_gain": 0.0,
@@ -211,7 +226,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 16,
+            "rank": 17,
             "athlete_id": 163675328,
             "velocity": 2.407666506947772,
             "elev_gain": 22.8,
@@ -226,7 +241,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 17,
+            "rank": 18,
             "athlete_id": 4952121,
             "velocity": 2.461953853706431,
             "elev_gain": 5.0,
@@ -241,7 +256,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 18,
+            "rank": 19,
             "athlete_id": 52299692,
             "velocity": 2.550127356087621,
             "elev_gain": 50.8,
@@ -256,7 +271,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 19,
+            "rank": 20,
             "athlete_id": 139984625,
             "velocity": 1.9841269841269842,
             "elev_gain": 0.0,
@@ -271,7 +286,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 20,
+            "rank": 21,
             "athlete_id": 205035720,
             "velocity": 2.2224285714285714,
             "elev_gain": 0.0,
@@ -286,7 +301,7 @@
             "athlete_member_type": "premium"
         },
         {
-            "rank": 21,
+            "rank": 22,
             "athlete_id": 137072582,
             "velocity": 2.3076923076923075,
             "elev_gain": 0.0,
