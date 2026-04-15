@@ -272,6 +272,21 @@
         },
         {
             "rank": 19,
+            "athlete_id": 130907959,
+            "velocity": 1.9572928821470243,
+            "elev_gain": 8.0,
+            "num_activities": 1,
+            "moving_time": 2571,
+            "distance": 5032.2,
+            "best_activities_distance": 5032.2,
+            "best_activities_distance_activity_id": 18072289435,
+            "athlete_firstname": "G",
+            "athlete_lastname": "Bae",
+            "athlete_picture_url": "https://dgalywyr863hv.cloudfront.net/pictures/athletes/130907959/30858513/1/medium.jpg",
+            "athlete_member_type": ""
+        },
+        {
+            "rank": 20,
             "athlete_id": 4952121,
             "velocity": 2.745235487404162,
             "elev_gain": 0.0,
@@ -286,7 +301,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 20,
+            "rank": 21,
             "athlete_id": 121293223,
             "velocity": 3.122741433021807,
             "elev_gain": 4.4,
@@ -301,7 +316,7 @@
             "athlete_member_type": ""
         },
         {
-            "rank": 21,
+            "rank": 22,
             "athlete_id": 137072582,
             "velocity": 2.380952380952381,
             "elev_gain": 0.0,
