@@ -269,21 +269,6 @@
             "athlete_lastname": "kim",
             "athlete_picture_url": "https://lh3.googleusercontent.com/a/ACg8ocJgMXMvBiKu_BhL9ZF1LwfzKAtSCp4CXzmP-V0FGtTCDCxI0Ec=s96-c",
             "athlete_member_type": ""
-        },
-        {
-            "rank": 19,
-            "athlete_id": 192452372,
-            "velocity": 1.781018119068162,
-            "elev_gain": 18.2,
-            "num_activities": 2,
-            "moving_time": 2318,
-            "distance": 4128.4,
-            "best_activities_distance": 3021.9,
-            "best_activities_distance_activity_id": 17400077296,
-            "athlete_firstname": "Hanna",
-            "athlete_lastname": "Yoo",
-            "athlete_picture_url": "https://lh3.googleusercontent.com/a/ACg8ocJlJugKxpIkokBg2MMH-NxDvkAx_Lz5B5db4EaDCHY8y6L9QPmF=s96-c",
-            "athlete_member_type": ""
         }
     ]
 }

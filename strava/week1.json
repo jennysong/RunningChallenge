@@ -95,14 +95,6 @@
             "athlete_firstname": "Jenny",
             "athlete_lastname": "Lee",
             "athlete_picture_url": "https://lh3.googleusercontent.com/a/ACg8ocLBV-o9ymWlRjkfaP8PsqfxrT2_eiwZ7gu_N86q1BqEcfWEhF86=s96-c"
-        },
-        {
-            "rank": 13,
-            "athlete_id": 192452372,
-            "distance": 3100,
-            "athlete_firstname": "Hanna",
-            "athlete_lastname": "Yoo",
-            "athlete_picture_url": "https://lh3.googleusercontent.com/a/ACg8ocJlJugKxpIkokBg2MMH-NxDvkAx_Lz5B5db4EaDCHY8y6L9QPmF=s96-c"
         }
     ]
 }
