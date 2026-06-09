@@ -3,7 +3,7 @@
 const AVAILABLE_WEEKS = [
     'week1.json', 'week2.json', 'week3.json', 'week4.json', 'week5.json', 'week6.json', 'week7.json', 'week8.json', 'week9.json', 'week10.json',
     'week11.json', 'week12.json', 'week13.json', 'week14.json', 'week15.json', 'week16.json', 'week17.json', 'week18.json', 'week19.json', 'week20.json',
-    'week21.json'
+    'week21.json', 'week22.json'
 ];
 
 // Function to get date range for a week (Week 1 starts Jan 5, 2026)
